@@ -5,7 +5,7 @@ using BackEnd;
 
 
 public class BackendGetTable : MonoBehaviour
-{
+{ 
     public UserData userData;
 
     private string StatTableKey;
@@ -19,9 +19,11 @@ public class BackendGetTable : MonoBehaviour
         userData.ownerIndate = bro.GetReturnValuetoJSON()["row"]["inDate"].ToString();
 #if UNITY_ANDROID
         userData.userNickname = Social.localUser.userName;
+        GetVersion();
 #else
         userData.userNickname = Backend.UserNickName; //임시 코드
 #endif
+        
     }
 
     //유저 스탯 테이블 init.
@@ -48,14 +50,31 @@ public class BackendGetTable : MonoBehaviour
         {
             OwnerIndate = bro.Rows()[i]["inDate"]["S"].ToString();
         }
-        string[] select = { "Lose","Win","Tie" };
+        string[] select = { "Win","Lose","Tie" };
 
         // 테이블 내 해당 rowIndate를 지닌 row를 조회
         // select에 존재하는 컬럼만 리턴
         var BRO = Backend.GameData.Get("UserStateTable", OwnerIndate, select); //BackEnd Return 데이터 Get.
         var json = BRO.GetReturnValuetoJSON(); //BackEnd Return 데이터 => JSON 데이터로 변환
         userData = new UserData(json); //UserData 클래스에 할당.
+        Debug.Log("유저데이터 테스트 : " + userData.lose);
         StatTableKey = OwnerIndate;
+    }
+
+    void GetVersion()
+    {
+        GameObject go = GameObject.Find("@Managers");
+        if(go == null)
+        {
+            Debug.Log("Not Found @Managers!!, I Can't Get the Version");
+            return;
+        }
+
+        BackendVersion backendVersion = go.GetComponent<BackendVersion>();
+        if (string.IsNullOrEmpty(backendVersion.version))
+            Debug.Log("empty!! BackendVersion.version!!!");
+        else
+            userData.version = backendVersion.version;
     }
 
 }

@@ -11,10 +11,12 @@ public class SceneManagerEx
     {
         SceneManager.LoadScene(GetSceneName(type));
     }
+
     public AsyncOperation AsyncScene(Define.Scene type)
     {
         return SceneManager.LoadSceneAsync(GetSceneName(type));
     }
+
     string GetSceneName(Define.Scene type)
     {
         string Name = System.Enum.GetName(typeof(Define.Scene), type);

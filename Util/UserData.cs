@@ -11,6 +11,7 @@ public class UserData
     public int tie;
     public string ownerIndate;
     public string userNickname;
+    public string version;
 
     public UserData(JsonData json) //JSON Data 할당 생성자.  
     {

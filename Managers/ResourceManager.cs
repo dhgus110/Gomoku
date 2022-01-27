@@ -18,6 +18,7 @@ public class ResourceManager
             Debug.Log($"Failed To Load Prefab : {path}"); //디버그문 출력
             return null;
         }
+
         return Object.Instantiate(original, parent);
     }
 
