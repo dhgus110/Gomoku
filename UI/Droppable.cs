@@ -33,14 +33,14 @@ public class Droppable : MonoBehaviour ,IPointerEnterHandler,IPointerExitHandler
         if (eventData.pointerDrag != null)
         {
             //현재 마우스 위치에 있는 오브젝트가 MyEmoticonSlot이 아니라면 오브젝트 삭제
-            Debug.Log("---"+eventData.pointerEnter.name);
+            Debug.Log("---" + eventData.pointerEnter.name);
             GameObject go = eventData.pointerEnter;
             if (go.name != "MyEmoticonSlot")
             {
                 Destroy(go);
             }
 
-           GameObject newGo = Managers.Resource.Instantiate(eventData.pointerDrag.gameObject.name, transform);
+            GameObject newGo = Managers.Resource.Instantiate($"Emoticon/{eventData.pointerDrag.gameObject.name}", transform);
             //(Clone)삭제
             string str = newGo.name;
             str = str.Replace("(Clone)", "");
