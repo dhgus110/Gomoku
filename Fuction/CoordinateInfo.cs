@@ -4,18 +4,11 @@ using UnityEngine;
 
 public class CoordinateInfo : MonoBehaviour
 {
-    public int x;
-    public int y;
-
-    public int X
+    [Header("AboutIndex")]
+    [SerializeField] private int index;
+    public int Index
     {
-        get { return x; }
-        set { x = value; }
-    }
-
-    public int Y
-    {
-        get { return y; }
-        set { y = value; }
+        get { return index; }
+        set { index = value; }
     }
 }

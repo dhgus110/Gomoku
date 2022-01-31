@@ -7,12 +7,12 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class PhotonManager : MonoBehaviourPunCallbacks
 {
-    [Header("AboutEmoticon")]
-    [SerializeField] private string[] MyEmoticon;
-
     [Header("AboutPhoton")]
     public PhotonView PV;
     //private readonly string version;
+
+    [Header("AboutOpponent")]
+    public string O_Nickname;
 
     private Define.Photon _photon = Define.Photon.None;
     public Define.Photon PhotonState
@@ -62,6 +62,7 @@ public class PhotonManager : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.CurrentRoom.PlayerCount == 1)
         {
+            SetOpponentInfo();
             //PV.RPC("EnterGame", RpcTarget.MasterClient);
             EnterGame();
         }
@@ -88,6 +89,9 @@ public class PhotonManager : MonoBehaviourPunCallbacks
     //[PunRPC]
     public void EnterGame()
     {
+        if (!PhotonNetwork.IsMasterClient)
+            return;
+
         PhotonNetwork.LoadLevel("Game");
         Debug.Log("-----Game Start!!------");
     }
@@ -110,10 +114,21 @@ public class PhotonManager : MonoBehaviourPunCallbacks
         }
     }
 
+    void SetOpponentInfo()
+    {
+        string myNickname = PhotonNetwork.NickName;
+        if (PhotonNetwork.InRoom)
+        {
+            for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
+            {
+                if (myNickname != PhotonNetwork.PlayerList[i].NickName)
+                    O_Nickname = PhotonNetwork.PlayerList[i].NickName;
+            }
+        }
+    }
 
 
-
-
+    [SerializeField] private string[] MyEmoticon;
 
     [ContextMenu("프로퍼티정보")]
     void PropertiesInfo()

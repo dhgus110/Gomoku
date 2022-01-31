@@ -3,32 +3,55 @@ using System.Collections.Generic;
 using Photon.Pun;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class PutDownStone : MonoBehaviour
 {
     [Header("AboutUI")]
     [SerializeField] private Transform ObjectBoard;
-    [SerializeField] private RectTransform mainShell;
+    [SerializeField] private Transform PrevObject; //이전에 눌린 오브젝트
+    [SerializeField] private Transform PrevParent; //이전 부모
+
+    private Color Yellow = new Color(1f, 1f, 0, 0.5f); //반투명 노랑 
+    private Color Blind = new Color(1f, 1f, 0, 0f); //안보임
 
 
-
-    #region UI_Listner
+    #region UI_Listener
     public void PutDown()
     {
-        Transform button = EventSystem.current.currentSelectedGameObject.transform;
+        Transform curObject = EventSystem.current.currentSelectedGameObject.transform;
 
-        if (PhotonNetwork.IsMasterClient)//마스터 = 흑돌
+        if (PrevObject != curObject) //처음 눌렸을 때, 다른 버튼 눌렸을 때,
         {
-            GameObject go = Managers.Resource.Instantiate("OmokObject/BlackStone", button);
-            go.transform.SetParent(ObjectBoard);
-            go.transform.SetAsLastSibling();
+            if(PrevObject != null) //이전 오브젝트 원래위치로, 색상 없애기.
+            {
+                PrevObject.SetParent(PrevParent);
+                PrevObject.GetComponent<Image>().color = Blind;
+            }
+            //현재 오브젝트는 컬러 노랑, 부모 위치  최상위로 변경 , 이전오브젝트변수에 현오브젝트 넣어주기
+            PrevObject = curObject;
+            PrevParent = curObject.parent;
+
+            curObject.SetParent(ObjectBoard);
+            curObject.SetAsLastSibling();
+            curObject.GetComponent<Image>().color = Yellow;
+
         }
-        else
+        else //같은거 눌렀을 때
         {
-            GameObject go = Managers.Resource.Instantiate("OmokObject/WhiteStone", button);
-            go.transform.SetParent(ObjectBoard);
-            go.transform.SetAsLastSibling();
+            curObject.SetParent(PrevParent);
+            curObject.GetComponent<Image>().color = Blind;
+            PrevObject = null;
+            PrevParent = null;
+
+            int index = curObject.GetComponent<CoordinateInfo>().Index;
+
+            if (PhotonNetwork.IsMasterClient)
+                BoardManager.Board.ApplyPutDown(index, false);
+            else
+                BoardManager.Board.O_M_Putdown(index, true);
         }
+
     }
     #endregion
 
