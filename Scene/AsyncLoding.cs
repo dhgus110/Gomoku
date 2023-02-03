@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class AsyncLoding : MonoBehaviour
 {
     [SerializeField] private Slider Slider; //Progress Bar
-    [SerializeField] private int MaxLoadingTime;  //Max Loading Time
+    [SerializeField] private float MaxLoadingTime;  //Max Loading Time
     //[SerializeField] private GameObject Manager;
     private BackendVersion BackendVersion;
 
@@ -21,17 +21,17 @@ public class AsyncLoding : MonoBehaviour
     {
         //version check
 #if UNITY_ANDROID || UNITY_IOS
-        GameObject go = GameObject.Find("@Managers");
-        if (go != null)
-        {
-            BackendVersion = go.GetComponent<BackendVersion>();
-            if (BackendVersion == null)
-            {
-                go.AddComponent<BackendVersion>();
-                BackendVersion = go.GetComponent<BackendVersion>();
-            }
-            BackendVersion.Checked();
-        }
+        //GameObject go = GameObject.Find("@Managers");
+        //if (go != null)
+        //{
+        //    BackendVersion = go.GetComponent<BackendVersion>();
+        //    if (BackendVersion == null)
+        //    {
+        //        go.AddComponent<BackendVersion>();
+        //        BackendVersion = go.GetComponent<BackendVersion>();
+        //    }
+        //    BackendVersion.Checked();
+        //}
 #endif
 
 

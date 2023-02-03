@@ -38,4 +38,29 @@ public class BackendInsertTable : MonoBehaviour
             }
         }
     }
+
+    //테이블이 있는지 조회
+    public bool IsTable(string str)
+    {
+        var bro = Backend.GameData.GetMyData(str, new Where(), 10);
+        if (bro.IsSuccess() == false)
+        {
+            // 요청 실패 처리
+            Debug.Log(bro);
+            Debug.Log("잘못된 테이블");
+
+            return false;
+        }
+        if (bro.GetReturnValuetoJSON()["rows"].Count <= 0)
+        {
+            // 요청이 성공해도 where 조건에 부합하는 데이터가 없을 수 있기 때문에
+            // 데이터가 존재하는지 확인
+            // 위와 같은 new Where() 조건의 경우 테이블에 row가 하나도 없으면 Count가 0 이하 일 수 있다.
+            Debug.Log(bro);
+            Debug.Log("데이터가 없는 테이블");
+            return false;
+        }
+
+        return true;
+    }
 }

@@ -7,7 +7,10 @@ using UnityEngine.UI;
 #if UNITY_ANDROID
 using GooglePlayGames;
 using GooglePlayGames.BasicApi;
+#elif UNITY_IOS
+using UnityEngine.SignInWithApple;
 #endif
+
 
 public class BackendFederationAuth : MonoBehaviour
 {
@@ -16,12 +19,17 @@ public class BackendFederationAuth : MonoBehaviour
     [SerializeField] private GameObject LoadingCanvas;
 
     [Header("Custom Login")]
-    [SerializeField] private InputField InputField_Id; //에디터 환경 위해 임시 커스텀 로그인 환경 아이디필드
+    [SerializeField] private RectTransform CustomLoginField;
+    [SerializeField] private RectTransform CustomLogin;
+    [SerializeField] private InputField InputField_Id;
     [SerializeField] private InputField InputField_Pw;
-    [SerializeField] private GameObject CustomLoginField;
+
 
     [Header("Google Login")]
-    [SerializeField] private GameObject GoogleLoginField;
+    [SerializeField] private RectTransform GoogleLogin;
+
+    [Header("Apple Login")]
+    [SerializeField] private RectTransform AppleLoginObject;
 
     [Header("Token Drop")]
     public bool deleteToken;
@@ -32,11 +40,11 @@ public class BackendFederationAuth : MonoBehaviour
 
 #if UNITY_ANDROID
         //오브젝트 활성 비활성.
-        GoogleLoginField.SetActive(true);
-        InputField_Id.gameObject.SetActive(false);
-        InputField_Pw.gameObject.SetActive(false);
-        CustomLoginField.SetActive(false);
-
+        GoogleLogin.gameObject.SetActive(true);
+        AppleLoginObject.gameObject.SetActive(false);
+#elif UNITY_IOS
+        GoogleLogin.gameObject.SetActive(false);
+        AppleLoginObject.gameObject.SetActive(true);
 #endif
     }
 
@@ -64,22 +72,20 @@ public class BackendFederationAuth : MonoBehaviour
 
         //GPGS 시작.
         PlayGamesPlatform.Activate();
-#endif
-        if (!deleteToken)
-        {
-            BackendReturnObject bro = Backend.BMember.LoginWithTheBackendToken();
-            if (bro.IsSuccess())
-            {
-                Debug.Log("유저 인증 토큰 로그인 성공");
-                //Managers.Scene.LoadScene(Define.Scene.Main);
 
-                LoginCanvas.SetActive(false);
-                LoadingCanvas.SetActive(true);       
-            }
-            else
-            {
-                Debug.Log("실패");
-            }
+#endif
+
+        BackendReturnObject bro = Backend.BMember.LoginWithTheBackendToken();
+        if (bro.IsSuccess())
+        {
+            Debug.Log("유저 인증 토큰 로그인 성공");
+            //Managers.Scene.LoadScene(Define.Scene.Main);
+            LoginCanvas.SetActive(false);
+            LoadingCanvas.SetActive(true);
+        }
+        else
+        {
+            Debug.Log("실패");
         }
     }
 
@@ -99,11 +105,11 @@ public class BackendFederationAuth : MonoBehaviour
                 }
 
                 // 로그인이 성공되었습니다.
-                Debug.Log("GetIdToken - " + PlayGamesPlatform.Instance.GetIdToken());
-                Debug.Log("Email - " + ((PlayGamesLocalUser)Social.localUser).Email);
-                Debug.Log("GoogleId - " + Social.localUser.id);
-                Debug.Log("UserName - " + Social.localUser.userName);
-                Debug.Log("UserName - " + PlayGamesPlatform.Instance.GetUserDisplayName());
+                //Debug.Log("GetIdToken - " + PlayGamesPlatform.Instance.GetIdToken());
+                //Debug.Log("Email - " + ((PlayGamesLocalUser)Social.localUser).Email);
+                //Debug.Log("GoogleId - " + Social.localUser.id);
+                //Debug.Log("UserName - " + Social.localUser.userName);
+                //Debug.Log("UserName - " + PlayGamesPlatform.Instance.GetUserDisplayName());
                 GPGSLogin();
             });
         }
@@ -141,11 +147,10 @@ public class BackendFederationAuth : MonoBehaviour
                 case "201":
                     Debug.Log("신규 회원가입 완료.");
                     gameObject.GetComponent<BackendInsertTable>().InsertUserStateTable();//유저 스탯 테이블 생성.
+                    Backend.BMember.CreateNickname(Social.localUser.userName);
                     break;
             }
-            user.UserNickname = Social.localUser.userName;
-
-            //Managers.Scene.LoadScene(Define.Scene.Main); //메인씬 이동
+            //user.UserNickname = Social.localUser.userName;
             LoginCanvas.SetActive(false);
             LoadingCanvas.SetActive(true);
         }
@@ -163,16 +168,61 @@ public class BackendFederationAuth : MonoBehaviour
             }
         }
     }
+//#endif
+
+#elif UNITY_IOS
+    public void AppleLogin()
+    {
+        var siwa = gameObject.GetComponent<SignInWithApple>();
+        siwa.Login(OnLogin);
+    }
+
+    public void OnLogin(SignInWithApple.CallbackArgs args)
+    {
+        BackendReturnObject bro = Backend.BMember.AuthorizeFederation(args.userInfo.idToken, FederationType.Apple, "siwa");
+
+        //Debug.Log(args.userInfo.idToken); <- 애플 로그인 토큰.
+
+        if (bro.IsSuccess())
+        {
+            //성공 처리
+            Debug.Log("APPLE 로그인 성공");
+            if(bro.GetStatusCode()=="201") //신규회원가입
+                gameObject.GetComponent<BackendInsertTable>().InsertUserStateTable();//유저 스탯 테이블 생성.
+            LoginCanvas.SetActive(false);
+            LoadingCanvas.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("Apple 로그인 실패");
+            Debug.LogError(bro.GetErrorCode());
+            //실패 처리
+        }
+    }
 #endif
 
-    //에디터 환경 개발 위한 커스텀 계정 회원가입 및 로그인 기능 (출시 시 삭제 예정)
+    public void ShowCustomSignUp()
+    {
+        CustomLogin.gameObject.SetActive(false);
+        AppleLoginObject.gameObject.SetActive(false);
+        GoogleLogin.gameObject.SetActive(false);
+        CustomLoginField.gameObject.SetActive(true);
+    }
+    
     public void OnClickCustomSignUp()
     {
         BackendReturnObject bro = Backend.BMember.CustomSignUp(InputField_Id.text, InputField_Pw.text);
         if (bro.IsSuccess())
         {
-            Debug.Log("회원가입에 성공했습니다");
-
+            FindObjectOfType<TitleScene>().PopupCustom.ShowSignupSuccess();
+        }
+        else if( bro.GetStatusCode() == "409")
+        {
+            FindObjectOfType<TitleScene>().PopupCustom.ShowDuplicatedCustomId();
+        }
+        else
+        {
+            FindObjectOfType<TitleScene>().PopupCustom.ShowFailedSigup(bro.GetErrorCode());
         }
     }
 
@@ -182,15 +232,19 @@ public class BackendFederationAuth : MonoBehaviour
         if (bro.IsSuccess())
         {
             Debug.Log("로그인에 성공했습니다");
+            if (!gameObject.GetComponent<BackendInsertTable>().IsTable("UserStateTable")) //테이블이 없을 경우 (첫 로그인인 경우)
+            {
+                gameObject.GetComponent<BackendInsertTable>().InsertUserStateTable();//유저 스탯 테이블 생성.
+                int rand = Random.Range(0, 1000);
+                Backend.BMember.CreateNickname("오목이야" + rand.ToString());
+            }
 
-            gameObject.GetComponent<BackendInsertTable>().InsertUserStateTable();//유저 스탯 테이블 생성.
-            //임시 닉네임 생성
-            int rand = Random.Range(0, 1000);
-            Backend.BMember.CreateNickname("오목이야" + rand.ToString());            
-
-            //Managers.Scene.LoadScene(Define.Scene.Main); //메인씬 이동
             LoginCanvas.SetActive(false);
             LoadingCanvas.SetActive(true);
+        }
+        else
+        {
+            FindObjectOfType<TitleScene>().PopupCustom.ShowBadLogin(bro.GetMessage());
         }
     }
 

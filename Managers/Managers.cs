@@ -7,8 +7,8 @@ public class Managers : MonoBehaviour
     static Managers s_instance; //싱글톤
     static Managers Instance { get { Init(); return s_instance; } }
 
-    InputManager _input = new InputManager();
-    public static InputManager Input { get { return Instance._input; } }
+    //InputManager _input = new InputManager();
+    //public static InputManager Input { get { return Instance._input; } }
 
     ResourceManager _resource = new ResourceManager();
     public static ResourceManager Resource { get { return Instance._resource; } }

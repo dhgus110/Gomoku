@@ -5,14 +5,16 @@ using Photon.Realtime;
 using Photon.Pun;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 
-public class PhotonManager : MonoBehaviourPunCallbacks
+public class PhotonManager : MonoBehaviourPunCallbacks 
 {
     [Header("AboutPhoton")]
     public PhotonView PV;
     //private readonly string version;
 
-    [Header("AboutOpponent")]
-    public string O_Nickname;
+    BackendGetTable getTable;
+
+    [Header("AboutEmoticon")]
+    [SerializeField] RectTransform MyEmoticonBasket;
 
     private Define.Photon _photon = Define.Photon.None;
     public Define.Photon PhotonState
@@ -40,39 +42,80 @@ public class PhotonManager : MonoBehaviourPunCallbacks
         }
     }
 
+    [SerializeField] private PhotonManager _photonManager;
+    public PhotonManager Photon
+    {
+        get
+        {
+            if (_photonManager == null)
+                _photonManager = FindObjectOfType<PhotonManager>();
+            return _photonManager;
+        }
+    }
+
+
     void Start()
     {
+        if (getTable == null)
+            getTable = FindObjectOfType<BackendGetTable>();
+
+        if (PhotonNetwork.IsConnected)
+            PhotonNetwork.Disconnect();
+ 
         PhotonNetwork.AutomaticallySyncScene = true;
-        PhotonNetwork.NickName = MainScene.GetTale.userData.userNickname;
+        PhotonNetwork.NickName = getTable.userData.userNickname;
         Debug.Log("포톤 서버 통신 횟수 : " + PhotonNetwork.SendRate);
-        PhotonNetwork.ConnectUsingSettings();
+        PhotonState = Define.Photon.Connected;
+ 
+
     }
 
     public override void OnConnectedToMaster()
     {
         Debug.Log("conneted master!");
+        PhotonNetwork.JoinLobby(); //auto join lobby
     }
 
     public override void OnDisconnected(DisconnectCause cause)
     {
+        PhotonNetwork.ConnectUsingSettings();
         Debug.Log(cause);
+    }
+
+    public override void OnJoinedLobby()
+    {
+        Debug.Log("OnJoinedLobby");
+
     }
 
     public override void OnJoinedRoom()
     {
-        if (PhotonNetwork.CurrentRoom.PlayerCount == 1)
+        Debug.Log("Joined Room");
+
+        if (PhotonNetwork.CurrentRoom.PlayerCount == 2)
         {
             SetOpponentInfo();
-            //PV.RPC("EnterGame", RpcTarget.MasterClient);
-            EnterGame();
+            PV.RPC("EnterGame", RpcTarget.MasterClient);
+            FindObjectOfType<MainScene>().Clear();
         }
     }
 
     public override void OnJoinRandomFailed(short returnCode, string message)
     {
-        Debug.Log("OnJoinRandomFailed()");
-        PhotonNetwork.CreateRoom(null, new RoomOptions { MaxPlayers = 2 }) ;
+        //if (!PhotonNetwork.IsConnected) //서버 연결 오류 시 재접속후 방 만들기
+        //{
+        //    Debug.Log("OnJoinRandomFailed, rejoin server");
+        //    ActionConnect(() => PhotonNetwork.CreateRoom(null, new RoomOptions { MaxPlayers = 2 }));
+        //}
+        //else
+            PhotonNetwork.CreateRoom(null, new RoomOptions { MaxPlayers = 2 });
     }
+
+    //void ActionConnect(System.Action action)
+    //{
+    //     PhotonNetwork.ConnectUsingSettings();
+
+    //}
 
     public override void OnCreatedRoom()
     {
@@ -84,33 +127,43 @@ public class PhotonManager : MonoBehaviourPunCallbacks
         Debug.Log("OnCreateRoomFailed() :" + message);
     }
 
+    public override void OnLeftRoom()
+    {
+        Debug.Log("OnLeftRoom()");
+    }
 
-
-    //[PunRPC]
+    [PunRPC]
     public void EnterGame()
     {
         if (!PhotonNetwork.IsMasterClient)
             return;
 
+        SetOpponentInfo();
+        FindObjectOfType<MainScene>().Clear();
         PhotonNetwork.LoadLevel("Game");
         Debug.Log("-----Game Start!!------");
     }
 
+
     void SetListEmoticon()
     {
-        GameObject go = GameObject.Find("MyEmoticon"); //슬롯이 모여있는 오브젝트.
-        if (go != null)
+        //슬롯이 모여있는 오브젝트.
+
+        if (MyEmoticonBasket != null)
         {
-            int emoticonCnt = go.transform.childCount;
+            int emoticonCnt = MyEmoticonBasket.transform.childCount;
             string MyEmoticons = "";
 
             for (int i = 0; i < emoticonCnt; i++)
             {
-                if (go.transform.GetChild(i).childCount > 0) //슬롯에 자식오브젝트(이모티콘)이 있으면
-                    MyEmoticons +=(go.transform.GetChild(i).GetChild(0).name) +'/'; //슬롯의 첫번째 자식오브젝트(이모티콘) 이름을 저장
+                if (MyEmoticonBasket.transform.GetChild(i).childCount > 0) //슬롯에 자식오브젝트(이모티콘)이 있으면
+                    MyEmoticons +=(MyEmoticonBasket.transform.GetChild(i).GetChild(0).name) +'/'; //슬롯의 첫번째 자식오브젝트(이모티콘) 이름을 저장
             }
 
             PhotonNetwork.SetPlayerCustomProperties(new Hashtable { { "MyEmoticons", MyEmoticons } });
+
+            PropertiesInfo();
+
         }
     }
 
@@ -122,14 +175,12 @@ public class PhotonManager : MonoBehaviourPunCallbacks
             for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
             {
                 if (myNickname != PhotonNetwork.PlayerList[i].NickName)
-                    O_Nickname = PhotonNetwork.PlayerList[i].NickName;
+                    getTable.userData.o_userNickname = PhotonNetwork.PlayerList[i].NickName;
             }
         }
     }
 
-
     [SerializeField] private string[] MyEmoticon;
-
     [ContextMenu("프로퍼티정보")]
     void PropertiesInfo()
     {
@@ -146,6 +197,8 @@ public class PhotonManager : MonoBehaviourPunCallbacks
             Debug.Log("현재 방 이름 : " + PhotonNetwork.CurrentRoom.Name);
             Debug.Log("현재 방 인원수 : " + PhotonNetwork.CurrentRoom.PlayerCount);
             Debug.Log("현재 방 최대 인원수 : " + PhotonNetwork.CurrentRoom.MaxPlayers);
+            Debug.Log("접속한 인원 수 : " + PhotonNetwork.CountOfPlayers);
+            Debug.Log("방 개수 : " + PhotonNetwork.CountOfRooms);
 
             string playerStr = "플레이어 목록 : ";
             for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
@@ -154,6 +207,7 @@ public class PhotonManager : MonoBehaviourPunCallbacks
         }
         else
         {
+
             Debug.Log("접속한 인원 수 : " + PhotonNetwork.CountOfPlayers);
             Debug.Log("방 개수 : " + PhotonNetwork.CountOfRooms);
             Debug.Log("모든 방에 있는 인원 수 : " + PhotonNetwork.CountOfPlayersInRooms);
